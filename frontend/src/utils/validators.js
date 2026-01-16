@@ -1,89 +1,103 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
 });
 
 export const studentRegisterSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  firstName: z.string().min(2, 'First name must be at least 2 characters'),
-  lastName: z.string().min(2, 'Last name must be at least 2 characters'),
-  collegeId: z.string().min(1, 'College is required'),
-  enrollmentNumber: z.number().int().min(1, 'Enrollment number is required'),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  firstName: z.string().min(2, "First name must be at least 2 characters"),
+  lastName: z.string().min(2, "Last name must be at least 2 characters"),
+  collegeId: z.string().min(1, "College is required"),
+  enrollmentNumber: z.string().min(1, "Enrollment number is required"),
   yearOfStudy: z.number().int().min(1).max(5).optional(),
   branch: z.string().optional(),
 });
 
 export const collegeRegisterSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  name: z.string().min(2, 'College name is required'),
-  code: z.string().min(1, 'College code is required'),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  name: z.string().min(2, "College name is required"),
+  code: z.string().min(1, "College code is required"),
   phone: z.string().optional(),
-  address: z.object({
-    street: z.string().optional(),
-    city: z.string().optional(),
-    state: z.string().optional(),
-    pincode: z.string().optional(),
-    country: z.string().optional(),
-  }).optional(),
+  address: z
+    .object({
+      street: z.string().optional(),
+      city: z.string().optional(),
+      state: z.string().optional(),
+      pincode: z.string().optional(),
+      country: z.string().optional(),
+    })
+    .optional(),
 });
 
 export const recruiterRegisterSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  companyName: z.string().min(2, 'Company name is required'),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  companyName: z.string().min(2, "Company name is required"),
   phone: z.string().optional(),
-  website: z.string().url('Invalid URL').optional().or(z.literal('')),
-  address: z.object({
-    street: z.string().optional(),
-    city: z.string().optional(),
-    state: z.string().optional(),
-    pincode: z.string().optional(),
-    country: z.string().optional(),
-  }).optional(),
+  website: z.string().url("Invalid URL").optional().or(z.literal("")),
+  address: z
+    .object({
+      street: z.string().optional(),
+      city: z.string().optional(),
+      state: z.string().optional(),
+      pincode: z.string().optional(),
+      country: z.string().optional(),
+    })
+    .optional(),
 });
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.string().email("Invalid email address"),
 });
 
-export const resetPasswordSchema = z.object({
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string().min(8, 'Password must be at least 8 characters'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ['confirmPassword'],
-});
+export const resetPasswordSchema = z
+  .object({
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 export const projectSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  description: z.string().min(10, 'Description must be at least 10 characters'),
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(10, "Description must be at least 10 characters"),
   technologies: z.array(z.string()).optional(),
-  githubUrl: z.string().url('Invalid URL').optional().or(z.literal('')),
-  liveUrl: z.string().url('Invalid URL').optional().or(z.literal('')),
+  githubUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
+  liveUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
 });
 
 export const achievementSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
+  title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
-  type: z.enum(['certification', 'award', 'competition', 'publication', 'other']),
-  issuer: z.string().min(1, 'Issuer is required'),
-  issueDate: z.string().min(1, 'Issue date is required'),
+  type: z.enum([
+    "certification",
+    "award",
+    "competition",
+    "publication",
+    "other",
+  ]),
+  issuer: z.string().min(1, "Issuer is required"),
+  issueDate: z.string().min(1, "Issue date is required"),
   expiryDate: z.string().optional(),
-  certificateUrl: z.string().url('Invalid URL').optional().or(z.literal('')),
+  certificateUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
 });
 
 export const opportunitySchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  description: z.string().min(10, 'Description must be at least 10 characters'),
-  type: z.enum(['full-time', 'internship', 'contract', 'freelance']),
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(10, "Description must be at least 10 characters"),
+  type: z.enum(["full-time", "internship", "contract", "freelance"]),
   location: z.object({
-    type: z.enum(['remote', 'onsite', 'hybrid']),
+    type: z.enum(["remote", "onsite", "hybrid"]),
     city: z.string().optional(),
     state: z.string().optional(),
     country: z.string().optional(),
@@ -91,9 +105,9 @@ export const opportunitySchema = z.object({
   salaryRange: z.object({
     min: z.number().min(0),
     max: z.number().min(0),
-    currency: z.string().default('INR'),
+    currency: z.string().default("INR"),
   }),
-  requiredSkills: z.array(z.string()).min(1, 'At least one skill is required'),
+  requiredSkills: z.array(z.string()).min(1, "At least one skill is required"),
   requiredExperience: z.number().min(0).optional(),
   requirements: z.array(z.string()).optional(),
   responsibilities: z.array(z.string()).optional(),
@@ -102,7 +116,7 @@ export const opportunitySchema = z.object({
 });
 
 export const applicationSchema = z.object({
-  opportunityId: z.string().min(1, 'Opportunity is required'),
+  opportunityId: z.string().min(1, "Opportunity is required"),
   coverLetter: z.string().optional(),
-  resumeUrl: z.string().url('Invalid URL').optional().or(z.literal('')),
+  resumeUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
 });

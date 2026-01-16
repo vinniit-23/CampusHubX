@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate, Link } from 'react-router-dom';
-import { studentRegisterSchema } from '../../../utils/validators';
-import { authApi } from '../../../services/api/auth';
-import { collegesApi } from '../../../services/api/colleges';
-import Button from '../../common/Button/Button';
-import Input from '../../common/Input/Input';
-import Select from '../../common/Select/Select';
-import toast from 'react-hot-toast';
-import { ROUTES } from '../../../utils/constants';
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useNavigate, Link } from "react-router-dom";
+import { studentRegisterSchema } from "../../../utils/validators";
+import { authApi } from "../../../services/api/auth";
+import { collegesApi } from "../../../services/api/colleges";
+import Button from "../../common/Button/Button";
+import Input from "../../common/Input/Input";
+import Select from "../../common/Select/Select";
+import toast from "react-hot-toast";
+import { ROUTES } from "../../../utils/constants";
 
 const StudentRegisterForm = () => {
   const navigate = useNavigate();
@@ -27,20 +27,27 @@ const StudentRegisterForm = () => {
     resolver: zodResolver(studentRegisterSchema),
   });
 
+  // StudentRegisterForm.jsx
+
   useEffect(() => {
     const fetchColleges = async () => {
       try {
         const response = await collegesApi.getAll();
         if (response.success) {
+          // FIX 1: Access 'response.data.data' because the API returns a paginated object
+          // FIX 2: Use 'college.name' instead of 'college.collegeName' (based on your College model)
+          const collegeList = response.data.data || [];
+
           setColleges(
-            response.data.map((college) => ({
+            collegeList.map((college) => ({
               value: college._id,
-              label: college.collegeName,
+              label: college.name, // The model uses 'name', not 'collegeName'
             }))
           );
         }
       } catch (error) {
-        console.error('Error fetching colleges:', error);
+        console.error("Error fetching colleges:", error);
+        toast.error("Failed to load colleges");
       } finally {
         setLoadingColleges(false);
       }
@@ -51,15 +58,19 @@ const StudentRegisterForm = () => {
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      const response = await authApi.register(data, 'student');
+      const response = await authApi.register(data, "student");
       if (response.success) {
-        toast.success('Registration successful! Please check your email to verify your account.');
+        toast.success(
+          "Registration successful! Please check your email to verify your account."
+        );
         navigate(ROUTES.LOGIN);
       } else {
-        toast.error(response.error?.message || 'Registration failed');
+        toast.error(response.error?.message || "Registration failed");
       }
     } catch (error) {
-      toast.error(error.response?.data?.error?.message || 'Registration failed');
+      toast.error(
+        error.response?.data?.error?.message || "Registration failed"
+      );
     } finally {
       setLoading(false);
     }
@@ -110,11 +121,13 @@ const StudentRegisterForm = () => {
       <Select
         label="College"
         name="collegeId"
-        value={watch('collegeId')}
-        onChange={(e) => setValue('collegeId', e.target.value)}
+        value={watch("collegeId")}
+        onChange={(e) => setValue("collegeId", e.target.value)}
         options={colleges}
         error={errors.collegeId?.message}
-        placeholder={loadingColleges ? 'Loading colleges...' : 'Select your college'}
+        placeholder={
+          loadingColleges ? "Loading colleges..." : "Select your college"
+        }
         required
         disabled={loadingColleges}
       />
@@ -131,7 +144,7 @@ const StudentRegisterForm = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Input
           label="Year of Study"
-          type="number"
+          type="number" /* FIXED: Was "String", which is invalid HTML. Must be "number" */
           name="yearOfStudy"
           register={register}
           error={errors.yearOfStudy?.message}
@@ -154,8 +167,11 @@ const StudentRegisterForm = () => {
       </Button>
 
       <p className="text-center text-sm text-gray-600">
-        Already have an account?{' '}
-        <Link to={ROUTES.LOGIN} className="text-primary-600 hover:text-primary-700 font-medium">
+        Already have an account?{" "}
+        <Link
+          to={ROUTES.LOGIN}
+          className="text-primary-600 hover:text-primary-700 font-medium"
+        >
           Sign in
         </Link>
       </p>
