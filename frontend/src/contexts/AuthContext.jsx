@@ -1,13 +1,13 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { authApi } from '../services/api/auth';
-import { ROLES } from '../utils/constants';
+import { createContext, useContext, useState, useEffect } from "react";
+import { authApi } from "../services/api/auth";
+import { ROLES } from "../utils/constants";
 
 const AuthContext = createContext(null);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
+    throw new Error("useAuth must be used within AuthProvider");
   }
   return context;
 };
@@ -21,9 +21,11 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
+  // src/contexts/AuthContext.jsx
+
   const checkAuth = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) {
         setIsLoading(false);
         return;
@@ -31,13 +33,23 @@ export const AuthProvider = ({ children }) => {
 
       const response = await authApi.getCurrentUser();
       if (response.success) {
-        setUser(response.data.user);
+        // 🔥 FIX: Merge the sibling 'profile' into the 'user' object
+        // The backend returns { user: {...}, profile: {...} }
+        const fullUser = {
+          ...response.data.user,
+          profile: response.data.profile,
+        };
+
+        setUser(fullUser);
         setIsAuthenticated(true);
       }
     } catch (error) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
+      console.error("Auth check failed:", error);
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
+      setUser(null);
+      setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
     }
@@ -48,11 +60,11 @@ export const AuthProvider = ({ children }) => {
       const response = await authApi.login(email, password);
       if (response.success) {
         const { token, refreshToken, user } = response.data;
-        localStorage.setItem('token', token);
+        localStorage.setItem("token", token);
         if (refreshToken) {
-          localStorage.setItem('refreshToken', refreshToken);
+          localStorage.setItem("refreshToken", refreshToken);
         }
-        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem("user", JSON.stringify(user));
         setUser(user);
         setIsAuthenticated(true);
         return { success: true };
@@ -61,7 +73,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        error: error.response?.data?.error || { message: 'Login failed' },
+        error: error.response?.data?.error || { message: "Login failed" },
       };
     }
   };
@@ -76,7 +88,9 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        error: error.response?.data?.error || { message: 'Registration failed' },
+        error: error.response?.data?.error || {
+          message: "Registration failed",
+        },
       };
     }
   };
@@ -85,11 +99,11 @@ export const AuthProvider = ({ children }) => {
     try {
       await authApi.logout();
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
       setUser(null);
       setIsAuthenticated(false);
     }
@@ -97,7 +111,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = (userData) => {
     setUser((prev) => ({ ...prev, ...userData }));
-    localStorage.setItem('user', JSON.stringify({ ...user, ...userData }));
+    localStorage.setItem("user", JSON.stringify({ ...user, ...userData }));
   };
 
   const value = {

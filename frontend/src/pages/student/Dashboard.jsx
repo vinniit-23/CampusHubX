@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react';
-import { studentsApi } from '../../services/api/students';
-import { matchingApi } from '../../services/api/matching';
-import Card from '../../components/common/Card/Card';
-import Spinner from '../../components/common/Spinner/Spinner';
-import { HiBriefcase, HiClipboardCheck, HiStar, HiUser } from 'react-icons/hi';
-import { Link } from 'react-router-dom';
-import { ROUTES } from '../../utils/constants';
-import { getMatchScoreColor } from '../../utils/helpers';
+import { useEffect, useState } from "react";
+import { useAuth } from "../../hooks/useAuth"; // 👈 1. IMPORT THIS
+import { studentsApi } from "../../services/api/students";
+import { matchingApi } from "../../services/api/matching";
+import Card from "../../components/common/Card/Card";
+import Spinner from "../../components/common/Spinner/Spinner";
+import { HiBriefcase, HiClipboardCheck, HiStar, HiUser } from "react-icons/hi";
+import { Link } from "react-router-dom";
+import { ROUTES } from "../../utils/constants";
+import { getMatchScoreColor } from "../../utils/helpers";
 
 const Dashboard = () => {
+  const { user } = useAuth(); // 👈 2. GET USER HERE
   const [stats, setStats] = useState({
     totalApplications: 0,
     pendingApplications: 0,
@@ -20,6 +22,9 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      // 3. Safety Check: Don't fetch if profile isn't loaded yet
+      if (!user?.profile?._id) return;
+
       try {
         const [dashboardResponse, matchesResponse] = await Promise.all([
           studentsApi.getDashboard(),
@@ -29,8 +34,10 @@ const Dashboard = () => {
         if (dashboardResponse?.success) {
           setStats({
             totalApplications: dashboardResponse.data?.totalApplications || 0,
-            pendingApplications: dashboardResponse.data?.pendingApplications || 0,
-            matchedOpportunities: dashboardResponse.data?.matchedOpportunities || 0,
+            pendingApplications:
+              dashboardResponse.data?.pendingApplications || 0,
+            matchedOpportunities:
+              dashboardResponse.data?.matchedOpportunities || 0,
             profileCompletion: dashboardResponse.data?.profileCompletion || 0,
           });
         }
@@ -39,41 +46,14 @@ const Dashboard = () => {
           setMatches(matchesResponse.data || []);
         }
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+        console.error("Error fetching dashboard data:", error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
-
-  const statCards = [
-    {
-      title: 'Total Applications',
-      value: stats.totalApplications,
-      icon: HiBriefcase,
-      color: 'bg-blue-500',
-    },
-    {
-      title: 'Pending Applications',
-      value: stats.pendingApplications,
-      icon: HiClipboardCheck,
-      color: 'bg-yellow-500',
-    },
-    {
-      title: 'Matched Opportunities',
-      value: stats.matchedOpportunities,
-      icon: HiStar,
-      color: 'bg-green-500',
-    },
-    {
-      title: 'Profile Completion',
-      value: `${stats.profileCompletion}%`,
-      icon: HiUser,
-      color: 'bg-purple-500',
-    },
-  ];
+  }, [user?.profile?._id]); // 👈 4. DEPENDENCY: Only runs when profile ID changes
 
   if (loading) {
     return (
@@ -87,17 +67,48 @@ const Dashboard = () => {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="mt-2 text-gray-600">Welcome back! Here's your overview.</p>
+        <p className="mt-2 text-gray-600">
+          Welcome back! Here's your overview.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((stat, index) => (
+        {/* ... (Rest of your JSX remains the same) ... */}
+        {/* I'll include the start of the mapping so you know where it fits */}
+        {[
+          {
+            title: "Total Applications",
+            value: stats.totalApplications,
+            icon: HiBriefcase,
+            color: "bg-blue-500",
+          },
+          {
+            title: "Pending Applications",
+            value: stats.pendingApplications,
+            icon: HiClipboardCheck,
+            color: "bg-yellow-500",
+          },
+          {
+            title: "Matched Opportunities",
+            value: stats.matchedOpportunities,
+            icon: HiStar,
+            color: "bg-green-500",
+          },
+          {
+            title: "Profile Completion",
+            value: `${stats.profileCompletion}%`,
+            icon: HiUser,
+            color: "bg-purple-500",
+          },
+        ].map((stat, index) => (
           <Card key={index} hover>
             <Card.Body>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">{stat.title}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                    {stat.value}
+                  </p>
                 </div>
                 <div className={`${stat.color} p-3 rounded-lg`}>
                   <stat.icon className="w-6 h-6 text-white" />
@@ -108,6 +119,7 @@ const Dashboard = () => {
         ))}
       </div>
 
+      {/* ... Rest of your component (Matches & Quick Actions) ... */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <Card.Header>
@@ -144,7 +156,7 @@ const Dashboard = () => {
                   </div>
                 ))}
                 <Link
-                  to={ROUTES.STUDENT_MATCHES}
+                  to={ROUTES.STUDENT_MATCHES || "#"} // Ensure this route exists or fallback
                   className="block text-center text-primary-600 hover:text-primary-700 font-medium"
                 >
                   View all matches →

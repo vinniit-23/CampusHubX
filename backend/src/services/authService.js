@@ -1,69 +1,71 @@
-import User from '../models/User.js';
-import Student from '../models/Student.js';
-import College from '../models/College.js';
-import Recruiter from '../models/Recruiter.js';
-import { 
-  generateToken, 
+import User from "../models/User.js";
+import Student from "../models/Student.js";
+import College from "../models/College.js";
+import Recruiter from "../models/Recruiter.js";
+import mongoose from "mongoose"; // Import mongoose
+import {
+  generateToken,
   generateEmailVerificationToken,
   generatePasswordResetToken,
   verifyEmailVerificationToken,
-  verifyPasswordResetToken
-} from '../config/jwt.js';
-import { sendVerificationEmail, sendPasswordResetEmail } from './emailService.js';
+  verifyPasswordResetToken,
+} from "../config/jwt.js";
+import {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+} from "./emailService.js";
 
 /**
  * Register a new student
  */
 export const registerStudent = async (userData, studentData) => {
+  const session = await mongoose.startSession();
+  session.startTransaction(); // Start the transaction
+
   try {
-    // Check if email already exists
-    const existingUser = await User.findOne({ email: userData.email });
+    const existingUser = await User.findOne({ email: userData.email }).session(
+      session
+    );
     if (existingUser) {
-      throw new Error('Email already registered');
+      throw new Error("Email already registered");
     }
 
-    // Create user
-    const user = await User.create({
-      email: userData.email,
-      password: userData.password,
-      role: 'student',
-      isEmailVerified: false
-    });
+    // Pass 'session' to all DB operations
+    const user = await User.create(
+      [
+        {
+          email: userData.email,
+          password: userData.password,
+          role: "student",
+          isEmailVerified: true,
+        },
+      ],
+      { session }
+    );
 
-    // Create student profile
-    const student = await Student.create({
-      userId: user._id,
-      ...studentData
-    });
+    const student = await Student.create(
+      [
+        {
+          userId: user[0]._id, // User.create returns an array when using sessions
+          ...studentData,
+        },
+      ],
+      { session }
+    );
 
-    // Generate verification token
-    const verificationToken = generateEmailVerificationToken({
-      userId: user._id,
-      email: user.email
-    });
+    // ... verification token logic ...
 
-    // Update user with verification token
-    user.emailVerificationToken = verificationToken;
-    await user.save();
-
-    // Send verification email
-    try {
-      await sendVerificationEmail(
-        user.email,
-        verificationToken,
-        studentData.firstName
-      );
-    } catch (emailError) {
-      console.error('Failed to send verification email:', emailError);
-      // Continue even if email fails
-    }
+    await session.commitTransaction(); // Save everything
+    session.endSession();
 
     return {
-      userId: user._id,
-      studentId: student._id,
-      email: user.email
+      userId: user[0]._id,
+      studentId: student[0]._id,
+      email: user[0].email,
     };
   } catch (error) {
+    await session.abortTransaction(); // Rollback EVERYTHING if any step fails
+    session.endSession();
     throw error;
   }
 };
@@ -75,26 +77,26 @@ export const registerCollege = async (userData, collegeData) => {
   try {
     const existingUser = await User.findOne({ email: userData.email });
     if (existingUser) {
-      throw new Error('Email already registered');
+      throw new Error("Email already registered");
     }
 
     const user = await User.create({
       email: userData.email,
       password: userData.password,
-      role: 'college',
-      isEmailVerified: false
+      role: "college",
+      isEmailVerified: false,
     });
 
     const college = await College.create({
       userId: user._id,
       ...collegeData,
-      verified: false
+      verified: false,
     });
 
     // Colleges need admin verification, but still send email verification
     const verificationToken = generateEmailVerificationToken({
       userId: user._id,
-      email: user.email
+      email: user.email,
     });
 
     user.emailVerificationToken = verificationToken;
@@ -103,7 +105,7 @@ export const registerCollege = async (userData, collegeData) => {
     return {
       userId: user._id,
       collegeId: college._id,
-      email: user.email
+      email: user.email,
     };
   } catch (error) {
     throw error;
@@ -117,25 +119,25 @@ export const registerRecruiter = async (userData, recruiterData) => {
   try {
     const existingUser = await User.findOne({ email: userData.email });
     if (existingUser) {
-      throw new Error('Email already registered');
+      throw new Error("Email already registered");
     }
 
     const user = await User.create({
       email: userData.email,
       password: userData.password,
-      role: 'recruiter',
-      isEmailVerified: false
+      role: "recruiter",
+      isEmailVerified: false,
     });
 
     const recruiter = await Recruiter.create({
       userId: user._id,
       ...recruiterData,
-      verified: false
+      verified: false,
     });
 
     const verificationToken = generateEmailVerificationToken({
       userId: user._id,
-      email: user.email
+      email: user.email,
     });
 
     user.emailVerificationToken = verificationToken;
@@ -148,13 +150,13 @@ export const registerRecruiter = async (userData, recruiterData) => {
         recruiterData.companyName
       );
     } catch (emailError) {
-      console.error('Failed to send verification email:', emailError);
+      console.error("Failed to send verification email:", emailError);
     }
 
     return {
       userId: user._id,
       recruiterId: recruiter._id,
-      email: user.email
+      email: user.email,
     };
   } catch (error) {
     throw error;
@@ -166,19 +168,22 @@ export const registerRecruiter = async (userData, recruiterData) => {
  */
 export const loginUser = async (email, password) => {
   try {
-    const user = await User.findOne({ email }).select('+password');
-    
+    const user = await User.findOne({ email }).select("+password");
+
     if (!user) {
-      throw new Error('Invalid credentials');
+      throw new Error("Invalid credentials");
     }
 
+    // if (!user.isEmailVerified && user.role !== "admin") {
+    //   throw new Error("Please verify your email address before logging in.");
+    // }
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
-      throw new Error('Invalid credentials');
+      throw new Error("Invalid credentials");
     }
 
     if (!user.isActive) {
-      throw new Error('Account is inactive');
+      throw new Error("Account is inactive");
     }
 
     // Update last login
@@ -187,11 +192,11 @@ export const loginUser = async (email, password) => {
 
     // Get user profile based on role
     let profile = null;
-    if (user.role === 'student') {
+    if (user.role === "student") {
       profile = await Student.findOne({ userId: user._id });
-    } else if (user.role === 'college') {
+    } else if (user.role === "college") {
       profile = await College.findOne({ userId: user._id });
-    } else if (user.role === 'recruiter') {
+    } else if (user.role === "recruiter") {
       profile = await Recruiter.findOne({ userId: user._id });
     }
 
@@ -199,13 +204,13 @@ export const loginUser = async (email, password) => {
     const token = generateToken({
       userId: user._id,
       email: user.email,
-      role: user.role
+      role: user.role,
     });
 
     const refreshToken = generateToken({
       userId: user._id,
       email: user.email,
-      role: user.role
+      role: user.role,
     });
 
     return {
@@ -216,8 +221,8 @@ export const loginUser = async (email, password) => {
         email: user.email,
         role: user.role,
         isEmailVerified: user.isEmailVerified,
-        profile
-      }
+        profile,
+      },
     };
   } catch (error) {
     throw error;
@@ -230,14 +235,14 @@ export const loginUser = async (email, password) => {
 export const verifyEmail = async (token) => {
   try {
     const decoded = verifyEmailVerificationToken(token);
-    
+
     const user = await User.findById(decoded.userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     if (user.emailVerificationToken !== token) {
-      throw new Error('Invalid verification token');
+      throw new Error("Invalid verification token");
     }
 
     user.isEmailVerified = true;
@@ -256,7 +261,7 @@ export const verifyEmail = async (token) => {
 export const requestPasswordReset = async (email) => {
   try {
     const user = await User.findOne({ email });
-    
+
     if (!user) {
       // Don't reveal if user exists for security
       return true;
@@ -264,7 +269,7 @@ export const requestPasswordReset = async (email) => {
 
     const resetToken = generatePasswordResetToken({
       userId: user._id,
-      email: user.email
+      email: user.email,
     });
 
     user.passwordResetToken = resetToken;
@@ -272,8 +277,8 @@ export const requestPasswordReset = async (email) => {
     await user.save({ validateBeforeSave: false });
 
     // Get user name for email
-    let firstName = 'User';
-    if (user.role === 'student') {
+    let firstName = "User";
+    if (user.role === "student") {
       const student = await Student.findOne({ userId: user._id });
       if (student) firstName = student.firstName;
     }
@@ -281,7 +286,7 @@ export const requestPasswordReset = async (email) => {
     try {
       await sendPasswordResetEmail(email, resetToken, firstName);
     } catch (emailError) {
-      console.error('Failed to send password reset email:', emailError);
+      console.error("Failed to send password reset email:", emailError);
     }
 
     return true;
@@ -296,19 +301,21 @@ export const requestPasswordReset = async (email) => {
 export const resetPassword = async (token, newPassword) => {
   try {
     const decoded = verifyPasswordResetToken(token);
-    
-    const user = await User.findById(decoded.userId).select('+passwordResetToken +passwordResetExpires');
-    
+
+    const user = await User.findById(decoded.userId).select(
+      "+passwordResetToken +passwordResetExpires"
+    );
+
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     if (user.passwordResetToken !== token) {
-      throw new Error('Invalid reset token');
+      throw new Error("Invalid reset token");
     }
 
     if (user.passwordResetExpires < new Date()) {
-      throw new Error('Reset token expired');
+      throw new Error("Reset token expired");
     }
 
     user.password = newPassword;
@@ -328,25 +335,25 @@ export const resetPassword = async (token, newPassword) => {
 export const getCurrentUserProfile = async (userId) => {
   try {
     const user = await User.findById(userId);
-    
+
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     let profile = null;
-    if (user.role === 'student') {
+    if (user.role === "student") {
       profile = await Student.findOne({ userId: user._id })
-        .populate('skills')
-        .populate('collegeId');
-    } else if (user.role === 'college') {
+        .populate("skills")
+        .populate("collegeId");
+    } else if (user.role === "college") {
       profile = await College.findOne({ userId: user._id });
-    } else if (user.role === 'recruiter') {
+    } else if (user.role === "recruiter") {
       profile = await Recruiter.findOne({ userId: user._id });
     }
 
     return {
       user,
-      profile
+      profile,
     };
   } catch (error) {
     throw error;

@@ -1,15 +1,22 @@
-import { useState, useEffect } from 'react';
-import { collegesApi } from '../../services/api/colleges';
-import { achievementsApi } from '../../services/api/achievements';
-import Card from '../../components/common/Card/Card';
-import Spinner from '../../components/common/Spinner/Spinner';
-import { HiUserGroup, HiCheckCircle, HiClock, HiAcademicCap } from 'react-icons/hi';
-import { Link } from 'react-router-dom';
-import { ROUTES } from '../../utils/constants';
-import Badge from '../../components/common/Badge/Badge';
-import { formatDate } from '../../utils/helpers';
+import { useState, useEffect } from "react";
+import { useAuth } from "../../hooks/useAuth"; // 1. Import useAuth
+import { collegesApi } from "../../services/api/colleges";
+import { achievementsApi } from "../../services/api/achievements";
+import Card from "../../components/common/Card/Card";
+import Spinner from "../../components/common/Spinner/Spinner";
+import {
+  HiUserGroup,
+  HiCheckCircle,
+  HiClock,
+  HiAcademicCap,
+} from "react-icons/hi";
+import { Link } from "react-router-dom";
+import { ROUTES } from "../../utils/constants";
+import Badge from "../../components/common/Badge/Badge";
+import { formatDate } from "../../utils/helpers";
 
 const Dashboard = () => {
+  const { user } = useAuth(); // 2. Get the logged-in user
   const [stats, setStats] = useState({
     totalStudents: 0,
     verifiedStudents: 0,
@@ -21,26 +28,37 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [user]); // 3. Re-run when user loads
 
   const fetchData = async () => {
+    // 4. Safety check: Don't fetch if profile isn't loaded yet
+    if (!user?.profile?._id) return;
+
     setLoading(true);
     try {
-      const [verificationsResponse] = await Promise.all([
+      const [studentsResponse, verificationsResponse] = await Promise.all([
+        // 5. Fetch students (limit 1 is enough to get the total count metadata)
+        collegesApi.getStudents(user.profile._id, { limit: 1 }),
         achievementsApi.getPending(),
       ]);
 
-      if (verificationsResponse?.success) {
-        setPendingVerifications(verificationsResponse.data || []);
-        setStats({
-          totalStudents: 0, // Will be updated when API is ready
-          verifiedStudents: 0,
-          pendingVerifications: verificationsResponse.data?.length || 0,
-          verifiedAchievements: 0,
-        });
-      }
+      // 6. Extract the total count from pagination metadata
+      const totalStudents = studentsResponse?.data?.pagination?.total || 0;
+
+      const pendingList = verificationsResponse?.success
+        ? verificationsResponse.data || []
+        : [];
+
+      setStats({
+        totalStudents: totalStudents, // 7. Update the state with real count
+        verifiedStudents: 0, // Backend filter for 'verified' not yet implemented in controller
+        pendingVerifications: pendingList.length,
+        verifiedAchievements: 0,
+      });
+
+      setPendingVerifications(pendingList);
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error("Error fetching dashboard data:", error);
     } finally {
       setLoading(false);
     }
@@ -48,28 +66,28 @@ const Dashboard = () => {
 
   const statCards = [
     {
-      title: 'Total Students',
+      title: "Total Students",
       value: stats.totalStudents,
       icon: HiUserGroup,
-      color: 'bg-blue-500',
+      color: "bg-blue-500",
     },
     {
-      title: 'Verified Students',
+      title: "Verified Students",
       value: stats.verifiedStudents,
       icon: HiCheckCircle,
-      color: 'bg-green-500',
+      color: "bg-green-500",
     },
     {
-      title: 'Pending Verifications',
+      title: "Pending Verifications",
       value: stats.pendingVerifications,
       icon: HiClock,
-      color: 'bg-yellow-500',
+      color: "bg-yellow-500",
     },
     {
-      title: 'Verified Achievements',
+      title: "Verified Achievements",
       value: stats.verifiedAchievements,
       icon: HiAcademicCap,
-      color: 'bg-purple-500',
+      color: "bg-purple-500",
     },
   ];
 
@@ -95,7 +113,9 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">{stat.title}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                    {stat.value}
+                  </p>
                 </div>
                 <div className={`${stat.color} p-3 rounded-lg`}>
                   <stat.icon className="w-6 h-6 text-white" />
@@ -132,7 +152,7 @@ const Dashboard = () => {
                         {verification.title}
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
-                        Student: {verification.studentId?.firstName}{' '}
+                        Student: {verification.studentId?.firstName}{" "}
                         {verification.studentId?.lastName}
                       </p>
                       <p className="text-sm text-gray-500 mt-1">
@@ -145,7 +165,9 @@ const Dashboard = () => {
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-4">No pending verifications</p>
+            <p className="text-gray-500 text-center py-4">
+              No pending verifications
+            </p>
           )}
         </Card.Body>
       </Card>

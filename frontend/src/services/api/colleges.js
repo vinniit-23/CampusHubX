@@ -1,8 +1,8 @@
-import apiClient from './client';
+import apiClient from "./client";
 
 export const collegesApi = {
   getAll: async () => {
-    const response = await apiClient.get('/api/colleges');
+    const response = await apiClient.get("/api/colleges");
     return response.data;
   },
 
@@ -12,18 +12,22 @@ export const collegesApi = {
   },
 
   updateProfile: async (data) => {
-    const response = await apiClient.put('/api/colleges/profile', data);
+    const response = await apiClient.put("/api/colleges/profile", data);
     return response.data;
   },
 
-  getStudents: async (filters = {}) => {
+  // 🔥 FIXED: Now accepts 'id' and uses correct string interpolation
+  getStudents: async (id, filters = {}) => {
     const params = new URLSearchParams(filters);
-    const response = await apiClient.get(`/api/colleges/:id/students?${params}`);
+    const response = await apiClient.get(
+      `/api/colleges/${id}/students?${params}`
+    );
     return response.data;
   },
 
+  // 🔥 FIXED: Corrected URL to match backend route (/verifications/pending)
   getPendingVerifications: async () => {
-    const response = await apiClient.get('/api/colleges/verifications');
+    const response = await apiClient.get("/api/colleges/verifications/pending");
     return response.data;
   },
 };

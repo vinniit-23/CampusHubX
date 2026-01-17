@@ -1,19 +1,19 @@
-import { useState, useEffect } from 'react';
-import { achievementsApi } from '../../services/api/achievements';
-import Card from '../../components/common/Card/Card';
-import Spinner from '../../components/common/Spinner/Spinner';
-import Button from '../../components/common/Button/Button';
-import Modal from '../../components/common/Modal/Modal';
-import Badge from '../../components/common/Badge/Badge';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { achievementSchema } from '../../utils/validators';
-import Input from '../../components/common/Input/Input';
-import Textarea from '../../components/common/Textarea/Textarea';
-import Select from '../../components/common/Select/Select';
-import toast from 'react-hot-toast';
-import { formatDate } from '../../utils/helpers';
-import { ACHIEVEMENT_TYPES, VERIFICATION_STATUS } from '../../utils/constants';
+import { useState, useEffect } from "react";
+import { achievementsApi } from "../../services/api/achievements";
+import Card from "../../components/common/Card/Card";
+import Spinner from "../../components/common/Spinner/Spinner";
+import Button from "../../components/common/Button/Button";
+import Modal from "../../components/common/Modal/Modal";
+import Badge from "../../components/common/Badge/Badge";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { achievementSchema } from "../../utils/validators";
+import Input from "../../components/common/Input/Input";
+import Textarea from "../../components/common/Textarea/Textarea";
+import Select from "../../components/common/Select/Select";
+import toast from "react-hot-toast";
+import { formatDate } from "../../utils/helpers";
+import { ACHIEVEMENT_TYPES, VERIFICATION_STATUS } from "../../utils/constants";
 
 const Achievements = () => {
   const [achievements, setAchievements] = useState([]);
@@ -34,15 +34,18 @@ const Achievements = () => {
     fetchAchievements();
   }, []);
 
+  // Locate this function
   const fetchAchievements = async () => {
     setLoading(true);
     try {
       const response = await achievementsApi.getAll();
       if (response.success) {
-        setAchievements(response.data || []);
+        // 🔴 OLD: setAchievements(response.data || []);
+        // 🟢 NEW: Extract the 'data' array
+        setAchievements(response.data?.data || []);
       }
     } catch (error) {
-      console.error('Error fetching achievements:', error);
+      console.error("Error fetching achievements:", error);
     } finally {
       setLoading(false);
     }
@@ -50,19 +53,34 @@ const Achievements = () => {
 
   const onSubmit = async (data) => {
     try {
+      // 🧼 SANITIZATION STEP
+      // Convert empty strings to undefined to satisfy Backend Joi validation
+      const cleanData = {
+        ...data,
+        certificateUrl: data.certificateUrl || undefined,
+        evidenceUrl: data.evidenceUrl || undefined, // If you add this field later
+        expiryDate: data.expiryDate || undefined,
+        // Ensure description is not just whitespace if entered
+        description: data.description?.trim() || undefined,
+      };
+
       if (editingAchievement) {
-        await achievementsApi.update(editingAchievement._id, data);
-        toast.success('Achievement updated successfully');
+        await achievementsApi.update(editingAchievement._id, cleanData); // Use cleanData
+        toast.success("Achievement updated successfully");
       } else {
-        await achievementsApi.create(data);
-        toast.success('Achievement created successfully');
+        await achievementsApi.create(cleanData); // Use cleanData
+        toast.success("Achievement created successfully");
       }
       fetchAchievements();
       setModalOpen(false);
       setEditingAchievement(null);
       reset();
     } catch (error) {
-      toast.error('Failed to save achievement');
+      console.error(error);
+      // Show the specific error message from the backend
+      const errorMessage = error.response?.data?.error?.message;
+      const errorDetails = error.response?.data?.error?.details?.[0]?.message;
+      toast.error(errorDetails || errorMessage || "Failed to save achievement");
     }
   };
 
@@ -73,13 +91,13 @@ const Achievements = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this achievement?')) {
+    if (window.confirm("Are you sure you want to delete this achievement?")) {
       try {
         await achievementsApi.delete(id);
-        toast.success('Achievement deleted successfully');
+        toast.success("Achievement deleted successfully");
         fetchAchievements();
       } catch (error) {
-        toast.error('Failed to delete achievement');
+        toast.error("Failed to delete achievement");
       }
     }
   };
@@ -99,7 +117,9 @@ const Achievements = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">My Achievements</h1>
-          <p className="mt-2 text-gray-600">Track your certifications and achievements</p>
+          <p className="mt-2 text-gray-600">
+            Track your certifications and achievements
+          </p>
         </div>
         <Button onClick={() => setModalOpen(true)}>Add Achievement</Button>
       </div>
@@ -114,24 +134,32 @@ const Achievements = () => {
             <Card key={achievement._id} hover>
               <Card.Body>
                 <div className="flex items-start justify-between mb-2">
-                  <h3 className="text-xl font-semibold text-gray-900">{achievement.title}</h3>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    {achievement.title}
+                  </h3>
                   {getStatusBadge(achievement.verificationStatus)}
                 </div>
                 <p className="text-gray-600 mt-2">{achievement.description}</p>
                 <div className="mt-4 space-y-1">
                   <p className="text-sm text-gray-500">
-                    <span className="font-medium">Type:</span> {achievement.type}
+                    <span className="font-medium">Type:</span>{" "}
+                    {achievement.type}
                   </p>
                   <p className="text-sm text-gray-500">
-                    <span className="font-medium">Issuer:</span> {achievement.issuer}
+                    <span className="font-medium">Issuer:</span>{" "}
+                    {achievement.issuer}
                   </p>
                   <p className="text-sm text-gray-500">
-                    <span className="font-medium">Issued:</span>{' '}
+                    <span className="font-medium">Issued:</span>{" "}
                     {formatDate(achievement.issueDate)}
                   </p>
                 </div>
                 <div className="flex space-x-2 mt-4">
-                  <Button size="sm" variant="outline" onClick={() => handleEdit(achievement)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEdit(achievement)}
+                  >
                     Edit
                   </Button>
                   <Button
@@ -155,7 +183,7 @@ const Achievements = () => {
           setEditingAchievement(null);
           reset();
         }}
-        title={editingAchievement ? 'Edit Achievement' : 'Add Achievement'}
+        title={editingAchievement ? "Edit Achievement" : "Add Achievement"}
         size="lg"
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -215,7 +243,7 @@ const Achievements = () => {
           />
           <div className="flex space-x-2">
             <Button type="submit" className="flex-1">
-              {editingAchievement ? 'Update' : 'Create'}
+              {editingAchievement ? "Update" : "Create"}
             </Button>
             <Button
               type="button"

@@ -1,9 +1,15 @@
-import apiClient from './client';
+import apiClient from "./client";
 
 export const skillsApi = {
   getAll: async (filters = {}) => {
     const params = new URLSearchParams(filters);
     const response = await apiClient.get(`/api/skills?${params}`);
+    return response.data;
+  },
+
+  // 🛠️ ADD THIS METHOD
+  create: async (data) => {
+    const response = await apiClient.post("/api/skills", data);
     return response.data;
   },
 
@@ -13,7 +19,7 @@ export const skillsApi = {
   },
 
   getByCategory: async () => {
-    const response = await apiClient.get('/api/skills/categories');
+    const response = await apiClient.get("/api/skills/categories");
     return response.data;
   },
 };
