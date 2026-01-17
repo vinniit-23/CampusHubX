@@ -77,7 +77,8 @@ export const projectSchema = z.object({
 });
 
 export const achievementSchema = z.object({
-  title: z.string().min(1, "Title is required"),
+  // Update min(1) to min(2) to match backend
+  title: z.string().min(2, "Title must be at least 2 characters"),
   description: z.string().optional(),
   type: z.enum([
     "certification",
