@@ -1,120 +1,157 @@
 import { useEffect, useState } from "react";
+import { collegesApi } from "../../services/api/colleges";
+import { useAuth } from "../../hooks/useAuth";
+import Spinner from "../../components/common/Spinner/Spinner";
+import { toast } from "react-hot-toast";
 
 export default function Students() {
+  const { user } = useAuth();
+  // CHANGED: Initialize loading to false. We only turn it on when we actually have the ID to fetch.
   const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
+    const fetchStudents = async () => {
+      // 1. Safety Check: If user or profile ID is missing, we stop here.
+      // Since loading is initialized to false, this won't cause an infinite spinner.
+      if (!user?.profile?._id) {
+        return;
+      }
 
-    if (!storedUser) {
-      setError("No logged-in college found.");
-      setLoading(false);
-      return;
-    }
+      try {
+        setLoading(true); // 2. Start loading NOW that we have the ID
 
-    const college = JSON.parse(storedUser);
-    const collegeId = college._id || college.id;
+        // Pass the ID explicitly to the API service
+        const response = await collegesApi.getStudents(user.profile._id);
 
-    if (!collegeId) {
-      setError("College ID not found in localStorage.");
-      setLoading(false);
-      return;
-    }
+        // Handle different response structures safely
+        const studentList = response.data?.data || response.data || [];
+        setStudents(studentList);
+      } catch (error) {
+        console.error("Failed to fetch students:", error);
+        toast.error(error.response?.data?.message || "Failed to load students");
+      } finally {
+        setLoading(false); // 3. Ensure loading is ALWAYS turned off after fetch
+      }
+    };
 
-    const token = college.token || localStorage.getItem("token");
-
-    fetch(`http://localhost:5000/api/colleges/${collegeId}/students`, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token ? `Bearer ${token}` : "",
-      },
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || "Failed to fetch students");
-        }
-        return res.json();
-      })
-      .then((data) => {
-        // 🔥 IMPORTANT FIX: normalize response safely
-        const list = Array.isArray(data?.data?.data)
-    ? data.data.data
-    : [];
-
-        setStudents(list);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }, []);
+    fetchStudents();
+  }, [user]);
 
   if (loading) {
-    return <h2 style={{ padding: "20px" }}>Loading students...</h2>;
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Spinner size="lg" />
+      </div>
+    );
   }
 
-  if (error) {
-    return <h2 style={{ padding: "20px", color: "red" }}>{error}</h2>;
+  // Optional: Add a check for user authentication state if needed
+  if (!user?.profile?._id) {
+    return (
+      <div className="p-6 text-center text-gray-500">
+        Loading user profile...
+      </div>
+    );
   }
 
   if (students.length === 0) {
-    return <h2 style={{ padding: "20px" }}>No students registered yet.</h2>;
+    return (
+      <div className="p-6 text-center">
+        <h2 className="text-xl font-semibold text-gray-700">
+          No students found
+        </h2>
+        <p className="text-gray-500 mt-2">
+          Your college hasn't verified any students yet.
+        </p>
+      </div>
+    );
   }
 
   return (
-    <div style={{ padding: "20px", maxWidth: "1000px", margin: "0 auto" }}>
-  <h1 style={{ marginBottom: "16px" }}>Registered Students</h1>
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">
+          Registered Students
+        </h1>
+        <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+          Total: {students.length}
+        </span>
+      </div>
 
-  <div style={{ overflowX: "auto" }}>
-    <table
-      style={{
-        width: "100%",
-        borderCollapse: "collapse",
-        background: "white",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-        borderRadius: "8px",
-        overflow: "hidden",
-      }}
-    >
-      <thead>
-        <tr style={{ background: "#f3f4f6" }}>
-          <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #e5e7eb" }}>
-            Name
-          </th>
-          <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #e5e7eb" }}>
-            Branch
-          </th>
-          <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #e5e7eb" }}>
-            Year
-          </th>
-          <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #e5e7eb" }}>
-            Skills
-          </th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {students.map((s) => (
-          <tr key={s._id} style={{ borderBottom: "1px solid #e5e7eb" }}>
-            <td style={{ padding: "12px" }}>
-              {s.firstName} {s.lastName}
-            </td>
-            <td style={{ padding: "12px" }}>{s.branch || "N/A"}</td>
-            <td style={{ padding: "12px" }}>{s.yearOfStudy || "N/A"}</td>
-            <td style={{ padding: "12px" }}>
-              {Array.isArray(s.skills) && s.skills.length > 0
-                ? s.skills.map(sk => sk.name || sk).join(", ")
-                : "No skills listed"}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</div>
+      <div className="overflow-x-auto bg-white rounded-lg shadow ring-1 ring-black ring-opacity-5">
+        <table className="min-w-full divide-y divide-gray-300">
+          <thead className="bg-gray-50">
+            <tr>
+              <th
+                scope="col"
+                className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
+              >
+                Name
+              </th>
+              <th
+                scope="col"
+                className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+              >
+                Branch
+              </th>
+              <th
+                scope="col"
+                className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+              >
+                Year
+              </th>
+              <th
+                scope="col"
+                className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+              >
+                Skills
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 bg-white">
+            {students.map((student) => (
+              <tr
+                key={student._id}
+                className="hover:bg-gray-50 transition-colors"
+              >
+                <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                  {student.firstName} {student.lastName}
+                </td>
+                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                  {student.branch || "N/A"}
+                </td>
+                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                  {student.yearOfStudy || "N/A"}
+                </td>
+                <td className="px-3 py-4 text-sm text-gray-500 max-w-xs truncate">
+                  {student.skills?.length > 0 ? (
+                    <div className="flex gap-1 flex-wrap">
+                      {student.skills.slice(0, 3).map((skill, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800"
+                        >
+                          {skill.name || skill}
+                        </span>
+                      ))}
+                      {student.skills.length > 3 && (
+                        <span className="text-xs text-gray-400">
+                          +{student.skills.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 italic">
+                      No skills listed
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

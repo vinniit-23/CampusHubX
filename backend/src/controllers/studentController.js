@@ -321,11 +321,13 @@ export const addSkill = asyncHandler(async (req, res) => {
   const student = await Student.findOne({ userId: req.user._id });
 
   if (!student) {
-    return res.status(404).json(
-      formatResponse(false, null, "Student profile not found", {
-        code: "NOT_FOUND",
-      })
-    );
+    return res
+      .status(404)
+      .json(
+        formatResponse(false, null, "Student profile not found", {
+          code: "NOT_FOUND",
+        })
+      );
   }
 
   const { skills } = req.body; // Expecting { skills: ["skillId"] }
