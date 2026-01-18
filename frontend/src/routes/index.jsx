@@ -27,6 +27,9 @@ import CollegeDashboard from "../pages/college/Dashboard";
 import CollegeStudents from "../pages/college/Students";
 // 👇 1. IMPORT COLLEGE PROFILE
 import CollegeProfile from "../pages/college/Profile";
+import CollegeVerifications from '../pages/college/Verifications';
+import StudentProfileForCollege from "../pages/college/StudentProfileForCollege";
+
 
 // Recruiter pages
 import RecruiterDashboard from "../pages/recruiter/Dashboard";
@@ -165,6 +168,18 @@ const AppRoutes = () => {
         }
       />
       <Route
+  path="/college/students/:id"
+  element={
+    <RoleRoute allowedRoles={[ROLES.COLLEGE]}>
+      <Layout>
+        <StudentProfileForCollege />
+      </Layout>
+    </RoleRoute>
+  }
+/>
+
+
+      <Route
         path="/college/students"
         element={
           <RoleRoute allowedRoles={[ROLES.COLLEGE]}>
@@ -174,6 +189,16 @@ const AppRoutes = () => {
           </RoleRoute>
         }
       />
+      <Route
+  path="/college/verifications"
+  element={
+    <RoleRoute allowedRoles={[ROLES.COLLEGE]}>
+      <Layout>
+        <CollegeVerifications />
+      </Layout>
+    </RoleRoute>
+  }
+/>
 
       {/* 👇 2. ADDED COLLEGE PROFILE ROUTE */}
       <Route
