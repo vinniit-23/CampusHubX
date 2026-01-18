@@ -1,4 +1,4 @@
-import apiClient from './client';
+import apiClient from "./client";
 
 export const applicationsApi = {
   getAll: async (filters = {}) => {
@@ -7,31 +7,47 @@ export const applicationsApi = {
     return response.data;
   },
 
+  // --- NEW METHOD ADDED HERE ---
+  getMyApplications: async () => {
+    // Fetches the current student's applications
+    const response = await apiClient.get("/api/students/applications");
+    return response.data;
+  },
+  // -----------------------------
+
   getById: async (id) => {
     const response = await apiClient.get(`/api/applications/${id}`);
     return response.data;
   },
 
   create: async (data) => {
-    const response = await apiClient.post('/api/applications', data);
+    const response = await apiClient.post("/api/applications", data);
     return response.data;
   },
 
-  updateStatus: async (id, status, notes) => {
-    const response = await apiClient.put(`/api/applications/${id}/status`, {
+  updateStatus: async (id, status) => {
+    const response = await apiClient.patch(`/api/applications/${id}/status`, {
       status,
-      notes,
     });
     return response.data;
   },
 
   getByOpportunity: async (opportunityId) => {
-    const response = await apiClient.get(`/api/applications/opportunity/${opportunityId}`);
+    const response = await apiClient.get(
+      `/api/applications/opportunity/${opportunityId}`,
+    );
     return response.data;
   },
 
   getByStudent: async (studentId) => {
-    const response = await apiClient.get(`/api/applications/student/${studentId}`);
+    const response = await apiClient.get(
+      `/api/applications/student/${studentId}`,
+    );
+    return response.data;
+  },
+
+  withdraw: async (id) => {
+    const response = await apiClient.patch(`/api/applications/${id}/withdraw`);
     return response.data;
   },
 };

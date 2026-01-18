@@ -16,7 +16,10 @@ import StudentApplications from "../pages/student/Applications";
 import StudentSkills from "../pages/student/Skills";
 import StudentProjects from "../pages/student/Projects";
 import StudentAchievements from "../pages/student/Achievements";
-import StudentProfile from "../pages/student/Profile"; // Added based on our previous work
+import StudentProfile from "../pages/student/Profile";
+// --- 1. ADD THIS IMPORT ---
+import OpportunityDetails from "../pages/student/OpportunityDetails";
+import ApplicationDetails from "../pages/student/ApplicationDetails";
 
 // College pages
 import CollegeDashboard from "../pages/college/Dashboard";
@@ -27,6 +30,10 @@ import StudentProfileForCollege from "../pages/college/StudentProfileForCollege"
 
 // Recruiter pages
 import RecruiterDashboard from "../pages/recruiter/Dashboard";
+import CreateOpportunity from "../pages/recruiter/CreateOpportunity";
+import RecruiterOpportunities from "../pages/recruiter/Opportunities";
+import RecruiterApplications from "../pages/recruiter/Applications";
+import RecruiterProfile from "../pages/recruiter/Profile";
 
 // Error pages
 const NotFound = () => (
@@ -60,6 +67,19 @@ const AppRoutes = () => {
           </RoleRoute>
         }
       />
+      {/* 2. ADD THIS NEW ROUTE */}
+      <Route
+        path={`${ROUTES.STUDENT_APPLICATIONS}/:id`}
+        element={
+          <RoleRoute allowedRoles={[ROLES.STUDENT]}>
+            <Layout>
+              <ApplicationDetails />
+            </Layout>
+          </RoleRoute>
+        }
+      />
+
+      {/* Student Opportunities List */}
       <Route
         path={ROUTES.STUDENT_OPPORTUNITIES}
         element={
@@ -70,6 +90,20 @@ const AppRoutes = () => {
           </RoleRoute>
         }
       />
+
+      {/* --- 2. ADD THIS ROUTE FOR DETAILS PAGE --- */}
+      {/* This handles /student/opportunities/123 */}
+      <Route
+        path={`${ROUTES.STUDENT_OPPORTUNITIES}/:id`}
+        element={
+          <RoleRoute allowedRoles={[ROLES.STUDENT]}>
+            <Layout>
+              <OpportunityDetails />
+            </Layout>
+          </RoleRoute>
+        }
+      />
+
       <Route
         path={ROUTES.STUDENT_APPLICATIONS}
         element={
@@ -111,7 +145,6 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Added Profile Route */}
       <Route
         path="/student/profile"
         element={
@@ -174,6 +207,50 @@ const AppRoutes = () => {
           <RoleRoute allowedRoles={[ROLES.RECRUITER]}>
             <Layout>
               <RecruiterDashboard />
+            </Layout>
+          </RoleRoute>
+        }
+      />
+
+      <Route
+        path={ROUTES.RECRUITER_OPPORTUNITIES}
+        element={
+          <RoleRoute allowedRoles={[ROLES.RECRUITER]}>
+            <Layout>
+              <RecruiterOpportunities />
+            </Layout>
+          </RoleRoute>
+        }
+      />
+
+      <Route
+        path={ROUTES.RECRUITER_PROFILE}
+        element={
+          <RoleRoute allowedRoles={[ROLES.RECRUITER]}>
+            <Layout>
+              <RecruiterProfile />
+            </Layout>
+          </RoleRoute>
+        }
+      />
+
+      <Route
+        path={`${ROUTES.RECRUITER_OPPORTUNITIES}/create`}
+        element={
+          <RoleRoute allowedRoles={[ROLES.RECRUITER]}>
+            <Layout>
+              <CreateOpportunity />
+            </Layout>
+          </RoleRoute>
+        }
+      />
+
+      <Route
+        path={ROUTES.RECRUITER_APPLICATIONS}
+        element={
+          <RoleRoute allowedRoles={[ROLES.RECRUITER]}>
+            <Layout>
+              <RecruiterApplications />
             </Layout>
           </RoleRoute>
         }

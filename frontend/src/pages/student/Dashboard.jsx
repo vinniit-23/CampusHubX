@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../../hooks/useAuth"; // 👈 1. IMPORT THIS
+import { useAuth } from "../../hooks/useAuth";
 import { studentsApi } from "../../services/api/students";
 import { matchingApi } from "../../services/api/matching";
 import Card from "../../components/common/Card/Card";
@@ -10,7 +10,7 @@ import { ROUTES } from "../../utils/constants";
 import { getMatchScoreColor } from "../../utils/helpers";
 
 const Dashboard = () => {
-  const { user } = useAuth(); // 👈 2. GET USER HERE
+  const { user } = useAuth();
   const [stats, setStats] = useState({
     totalApplications: 0,
     pendingApplications: 0,
@@ -22,7 +22,6 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      // 3. Safety Check: Don't fetch if profile isn't loaded yet
       if (!user?.profile?._id) return;
 
       try {
@@ -53,7 +52,7 @@ const Dashboard = () => {
     };
 
     fetchData();
-  }, [user?.profile?._id]); // 👈 4. DEPENDENCY: Only runs when profile ID changes
+  }, [user?.profile?._id]);
 
   if (loading) {
     return (
@@ -62,6 +61,38 @@ const Dashboard = () => {
       </div>
     );
   }
+
+  // Define stats with their destination links
+  const statCards = [
+    {
+      title: "Total Applications",
+      value: stats.totalApplications,
+      icon: HiBriefcase,
+      color: "bg-blue-500",
+      link: ROUTES.STUDENT_APPLICATIONS, // 👈 Navigate to Applications
+    },
+    {
+      title: "Pending Applications",
+      value: stats.pendingApplications,
+      icon: HiClipboardCheck,
+      color: "bg-yellow-500",
+      link: `${ROUTES.STUDENT_APPLICATIONS}?status=pending`, // 👈 Navigate to Applications (filtered)
+    },
+    {
+      title: "Matched Opportunities",
+      value: stats.matchedOpportunities,
+      icon: HiStar,
+      color: "bg-green-500",
+      link: ROUTES.STUDENT_OPPORTUNITIES, // 👈 Navigate to Opportunities
+    },
+    {
+      title: "Profile Completion",
+      value: `${stats.profileCompletion}%`,
+      icon: HiUser,
+      color: "bg-purple-500",
+      link: "/student/profile", // 👈 Navigate to Profile
+    },
+  ];
 
   return (
     <div className="space-y-8">
@@ -72,55 +103,36 @@ const Dashboard = () => {
         </p>
       </div>
 
+      {/* STATS GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* ... (Rest of your JSX remains the same) ... */}
-        {/* I'll include the start of the mapping so you know where it fits */}
-        {[
-          {
-            title: "Total Applications",
-            value: stats.totalApplications,
-            icon: HiBriefcase,
-            color: "bg-blue-500",
-          },
-          {
-            title: "Pending Applications",
-            value: stats.pendingApplications,
-            icon: HiClipboardCheck,
-            color: "bg-yellow-500",
-          },
-          {
-            title: "Matched Opportunities",
-            value: stats.matchedOpportunities,
-            icon: HiStar,
-            color: "bg-green-500",
-          },
-          {
-            title: "Profile Completion",
-            value: `${stats.profileCompletion}%`,
-            icon: HiUser,
-            color: "bg-purple-500",
-          },
-        ].map((stat, index) => (
-          <Card key={index} hover>
-            <Card.Body>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">{stat.title}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    {stat.value}
-                  </p>
+        {statCards.map((stat, index) => (
+          // 1. WRAP CARD IN LINK
+          <Link
+            key={index}
+            to={stat.link}
+            className="block transition-transform transform hover:-translate-y-1"
+          >
+            <Card hover className="h-full cursor-pointer">
+              <Card.Body>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">{stat.title}</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">
+                      {stat.value}
+                    </p>
+                  </div>
+                  <div className={`${stat.color} p-3 rounded-lg`}>
+                    <stat.icon className="w-6 h-6 text-white" />
+                  </div>
                 </div>
-                <div className={`${stat.color} p-3 rounded-lg`}>
-                  <stat.icon className="w-6 h-6 text-white" />
-                </div>
-              </div>
-            </Card.Body>
-          </Card>
+              </Card.Body>
+            </Card>
+          </Link>
         ))}
       </div>
 
-      {/* ... Rest of your component (Matches & Quick Actions) ... */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* RECENT MATCHES */}
         <Card>
           <Card.Header>
             <h2 className="text-xl font-semibold">Recent Matches</h2>
@@ -156,7 +168,7 @@ const Dashboard = () => {
                   </div>
                 ))}
                 <Link
-                  to={ROUTES.STUDENT_MATCHES || "#"} // Ensure this route exists or fallback
+                  to={ROUTES.STUDENT_OPPORTUNITIES}
                   className="block text-center text-primary-600 hover:text-primary-700 font-medium"
                 >
                   View all matches →
@@ -168,6 +180,7 @@ const Dashboard = () => {
           </Card.Body>
         </Card>
 
+        {/* QUICK ACTIONS */}
         <Card>
           <Card.Header>
             <h2 className="text-xl font-semibold">Quick Actions</h2>

@@ -4,12 +4,13 @@ import {
   paginate,
   formatPaginationResponse,
 } from "../utils/helpers.js";
+import mongoose from "mongoose"; // 👈 ADDED THIS
 import Student from "../models/Student.js";
 import Project from "../models/Project.js";
 import Achievement from "../models/Achievement.js";
-import Application from "../models/Application.js";
+// ❌ REMOVED: import Application from "../models/Application.js";
 import { USER_ROLES } from "../utils/constants.js";
-import Match from "../models/Match.js"; // Import Match model;
+// ❌ REMOVED: import Match from "../models/Match.js";
 
 /**
  * Get own profile
@@ -25,7 +26,7 @@ export const getOwnProfile = asyncHandler(async (req, res) => {
     return res.status(404).json(
       formatResponse(false, null, "Student profile not found", {
         code: "NOT_FOUND",
-      })
+      }),
     );
   }
 
@@ -44,7 +45,7 @@ export const updateOwnProfile = asyncHandler(async (req, res) => {
     return res.status(404).json(
       formatResponse(false, null, "Student profile not found", {
         code: "NOT_FOUND",
-      })
+      }),
     );
   }
 
@@ -80,14 +81,14 @@ export const getStudentProfile = asyncHandler(async (req, res) => {
     return res
       .status(404)
       .json(
-        formatResponse(false, null, "Student not found", { code: "NOT_FOUND" })
+        formatResponse(false, null, "Student not found", { code: "NOT_FOUND" }),
       );
   }
 
   res
     .status(200)
     .json(
-      formatResponse(true, student, "Student profile retrieved successfully")
+      formatResponse(true, student, "Student profile retrieved successfully"),
     );
 });
 
@@ -103,14 +104,14 @@ export const getStudentSkills = asyncHandler(async (req, res) => {
     return res
       .status(404)
       .json(
-        formatResponse(false, null, "Student not found", { code: "NOT_FOUND" })
+        formatResponse(false, null, "Student not found", { code: "NOT_FOUND" }),
       );
   }
 
   res
     .status(200)
     .json(
-      formatResponse(true, student.skills, "Skills retrieved successfully")
+      formatResponse(true, student.skills, "Skills retrieved successfully"),
     );
 });
 
@@ -125,7 +126,7 @@ export const getStudentProjects = asyncHandler(async (req, res) => {
     return res
       .status(404)
       .json(
-        formatResponse(false, null, "Student not found", { code: "NOT_FOUND" })
+        formatResponse(false, null, "Student not found", { code: "NOT_FOUND" }),
       );
   }
 
@@ -144,8 +145,8 @@ export const getStudentProjects = asyncHandler(async (req, res) => {
       formatResponse(
         true,
         formatPaginationResponse(projects, total, page.page, page.limit),
-        "Projects retrieved successfully"
-      )
+        "Projects retrieved successfully",
+      ),
     );
 });
 
@@ -160,7 +161,7 @@ export const getStudentAchievements = asyncHandler(async (req, res) => {
     return res
       .status(404)
       .json(
-        formatResponse(false, null, "Student not found", { code: "NOT_FOUND" })
+        formatResponse(false, null, "Student not found", { code: "NOT_FOUND" }),
       );
   }
 
@@ -183,8 +184,8 @@ export const getStudentAchievements = asyncHandler(async (req, res) => {
       formatResponse(
         true,
         formatPaginationResponse(achievements, total, page.page, page.limit),
-        "Achievements retrieved successfully"
-      )
+        "Achievements retrieved successfully",
+      ),
     );
 });
 
@@ -192,6 +193,9 @@ export const getStudentAchievements = asyncHandler(async (req, res) => {
  * Get own applications
  */
 export const getOwnApplications = asyncHandler(async (req, res) => {
+  // ✅ FIX: Get Model at runtime
+  const Application = mongoose.model("Application");
+
   const { page, limit } = paginate(req.query.page, req.query.limit);
 
   const student = await Student.findOne({ userId: req.user._id });
@@ -199,7 +203,7 @@ export const getOwnApplications = asyncHandler(async (req, res) => {
     return res.status(404).json(
       formatResponse(false, null, "Student profile not found", {
         code: "NOT_FOUND",
-      })
+      }),
     );
   }
 
@@ -225,13 +229,13 @@ export const getOwnApplications = asyncHandler(async (req, res) => {
       formatResponse(
         true,
         formatPaginationResponse(applications, total, page.page, page.limit),
-        "Applications retrieved successfully"
-      )
+        "Applications retrieved successfully",
+      ),
     );
 });
 
 /**
- * Get matched opportunities (from matching service)
+ * Get matched opportunities
  */
 export const getMatchedOpportunities = asyncHandler(async (req, res) => {
   const student = await Student.findOne({ userId: req.user._id });
@@ -239,18 +243,15 @@ export const getMatchedOpportunities = asyncHandler(async (req, res) => {
     return res.status(404).json(
       formatResponse(false, null, "Student profile not found", {
         code: "NOT_FOUND",
-      })
+      }),
     );
   }
-
-  const { page, limit } = paginate(req.query.page, req.query.limit);
-  const minScore = parseInt(req.query.minScore) || 60;
 
   // This will be handled by matchingController
   res
     .status(200)
     .json(
-      formatResponse(true, null, "Use /api/matching/opportunities endpoint")
+      formatResponse(true, null, "Use /api/matching/opportunities endpoint"),
     );
 });
 
@@ -258,24 +259,36 @@ export const getMatchedOpportunities = asyncHandler(async (req, res) => {
  * Get dashboard data
  */
 export const getDashboard = asyncHandler(async (req, res) => {
+  // ✅ FIX: Get Models at runtime to avoid circular dependency
+  const Application = mongoose.model("Application");
+  // Check if Match is registered, otherwise handle gracefully or use dynamic import if needed
+  // Assuming Match model is registered via matchingService or matchingRoutes
+  let Match;
+  try {
+    Match = mongoose.model("Match");
+  } catch (e) {
+    // Fallback if Match model isn't loaded yet (rare, but safe)
+    Match = { countDocuments: () => 0 };
+  }
+
   const student = await Student.findOne({ userId: req.user._id });
   if (!student) {
     return res.status(404).json(
       formatResponse(false, null, "Student profile not found", {
         code: "NOT_FOUND",
-      })
+      }),
     );
   }
 
-  // 1. Calculate Profile Completion (Simple logic: check filled fields)
+  // 1. Calculate Profile Completion
   let filledFields = 0;
-  const totalFields = 6; // bio, skills, projects, resume(if exists), etc.
+  const totalFields = 6;
   if (student.bio) filledFields++;
   if (student.skills && student.skills.length > 0) filledFields++;
   if (student.projects && student.projects.length > 0) filledFields++;
   if (student.achievements && student.achievements.length > 0) filledFields++;
   if (student.profilePicture) filledFields++;
-  if (student.resumeUrl) filledFields++; // Assuming resumeUrl exists in schema
+  if (student.resumeUrl) filledFields++;
 
   const profileCompletion = Math.round((filledFields / totalFields) * 100);
 
@@ -284,11 +297,10 @@ export const getDashboard = asyncHandler(async (req, res) => {
     await Promise.all([
       Application.countDocuments({ studentId: student._id }),
       Application.countDocuments({ studentId: student._id, status: "pending" }),
-      // Assuming Match model exists and stores computed matches
       Match.countDocuments({ studentId: student._id }),
     ]);
 
-  // 3. Get recent applications for the list view
+  // 3. Get recent applications
   const recentApplications = await Application.find({ studentId: student._id })
     .populate("opportunityId", "title type")
     .sort({ appliedAt: -1 })
@@ -298,43 +310,34 @@ export const getDashboard = asyncHandler(async (req, res) => {
     formatResponse(
       true,
       {
-        // FIXED: Keys now match Dashboard.jsx expectations
         totalApplications,
         pendingApplications,
         matchedOpportunities: matchedOpportunitiesCount,
         profileCompletion,
         recentApplications,
       },
-      "Dashboard data retrieved successfully"
-    )
+      "Dashboard data retrieved successfully",
+    ),
   );
 });
 
-// backend/src/controllers/studentController.js
-
-// ... existing imports
-
 /**
- * Add skill to student profile (Safely appends)
+ * Add skill to student profile
  */
 export const addSkill = asyncHandler(async (req, res) => {
   const student = await Student.findOne({ userId: req.user._id });
 
   if (!student) {
-    return res
-      .status(404)
-      .json(
-        formatResponse(false, null, "Student profile not found", {
-          code: "NOT_FOUND",
-        })
-      );
+    return res.status(404).json(
+      formatResponse(false, null, "Student profile not found", {
+        code: "NOT_FOUND",
+      }),
+    );
   }
 
-  const { skills } = req.body; // Expecting { skills: ["skillId"] }
+  const { skills } = req.body;
 
   if (skills && Array.isArray(skills)) {
-    // Use $addToSet to add new skills without creating duplicates
-    // and without overwriting existing ones
     student.skills.addToSet(...skills);
     await student.save();
   }
@@ -343,5 +346,3 @@ export const addSkill = asyncHandler(async (req, res) => {
     .status(200)
     .json(formatResponse(true, student.skills, "Skills added successfully"));
 });
-
-// ... existing functions (getOwnProfile, updateOwnProfile, etc.)

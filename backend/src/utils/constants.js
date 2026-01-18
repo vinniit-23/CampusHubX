@@ -5,6 +5,8 @@ export const USER_ROLES = {
   ADMIN: 'admin'
 };
 
+
+
 export const SKILL_CATEGORIES = {
   TECHNICAL: 'technical',
   SOFT: 'soft',
@@ -44,7 +46,8 @@ export const APPLICATION_STATUS = {
   REVIEWING: 'reviewing',
   SHORTLISTED: 'shortlisted',
   REJECTED: 'rejected',
-  ACCEPTED: 'accepted'
+  ACCEPTED: 'accepted',
+  WITHDRAWN: 'withdrawn' // <--- ADD THIS
 };
 
 export const ANALYTICS_ENTITY_TYPES = {
