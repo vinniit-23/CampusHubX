@@ -24,6 +24,11 @@ const studentSchema = new mongoose.Schema(
       ref: "College",
       index: true,
     },
+    // 👉 ADD THIS RIGHT HERE
+isVerifiedByCollege: {
+  type: Boolean,
+  default: false,
+},
     enrollmentNumber: {
       type: String,
       index: true,

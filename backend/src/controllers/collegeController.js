@@ -192,19 +192,35 @@ export const verifyStudentEnrollment = asyncHandler(async (req, res) => {
     );
   }
 
-  if (student.collegeId && student.collegeId.toString() !== college._id.toString()) {
+  if (
+    student.collegeId &&
+    student.collegeId.toString() !== college._id.toString()
+  ) {
     return res.status(403).json(
-      formatResponse(false, null, 'Student does not belong to your college', { code: 'FORBIDDEN' })
+      formatResponse(false, null, 'Student does not belong to your college', {
+        code: 'FORBIDDEN',
+      })
     );
   }
 
-  // Update student's college if needed
+  // 👉 IMPORTANT PART — this makes verification STICK
+  student.isVerifiedByCollege = true;
+
+  // If student had no college before, attach it
   if (!student.collegeId) {
     student.collegeId = college._id;
-    await student.save();
   }
 
+  await student.save();
+
   res.status(200).json(
-    formatResponse(true, student, 'Student enrollment verified successfully')
+    formatResponse(
+      true,
+      {
+        _id: student._id,
+        isVerifiedByCollege: student.isVerifiedByCollege,
+      },
+      'Student verified successfully'
+    )
   );
 });
