@@ -7,6 +7,14 @@ export const applicationsApi = {
     return response.data;
   },
 
+  // --- NEW METHOD ADDED HERE ---
+  getMyApplications: async () => {
+    // Fetches the current student's applications
+    const response = await apiClient.get("/api/students/applications");
+    return response.data;
+  },
+  // -----------------------------
+
   getById: async (id) => {
     const response = await apiClient.get(`/api/applications/${id}`);
     return response.data;
@@ -35,6 +43,11 @@ export const applicationsApi = {
     const response = await apiClient.get(
       `/api/applications/student/${studentId}`,
     );
+    return response.data;
+  },
+
+  withdraw: async (id) => {
+    const response = await apiClient.patch(`/api/applications/${id}/withdraw`);
     return response.data;
   },
 };

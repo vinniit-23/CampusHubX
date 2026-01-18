@@ -10,7 +10,7 @@ const Header = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Derive roles directly from user object (safeguard if useRole hook doesn't exist)
+  // Derive roles
   const isStudent = user?.role === ROLES.STUDENT;
   const isCollege = user?.role === ROLES.COLLEGE;
   const isRecruiter = user?.role === ROLES.RECRUITER;
@@ -35,6 +35,42 @@ const Header = () => {
     return "#";
   };
 
+  // ✅ HELPER: Robustly find the user's name (handles nested profile)
+  const getUserName = () => {
+    // 1. Try nested profile properties (This is where checkAuth puts data)
+    if (user?.profile?.companyName) return user.profile.companyName;
+    if (user?.profile?.firstName)
+      return `${user.profile.firstName} ${user.profile.lastName || ""}`;
+    if (user?.profile?.name) return user.profile.name;
+
+    // 2. Try top-level properties (Fallback for login response)
+    if (user?.companyName) return user.companyName;
+    if (user?.firstName) return `${user.firstName} ${user.lastName || ""}`;
+    if (user?.name) return user.name;
+
+    return "User";
+  };
+
+  // ✅ HELPER: Generate Google-style Avatar URL
+  const getAvatarSrc = () => {
+    // 1. If user has a real uploaded photo, use it
+    if (user?.profile?.profilePicture) return user.profile.profilePicture;
+    if (user?.profile?.logo) return user.profile.logo;
+    if (user?.profilePicture) return user.profilePicture;
+    if (user?.logo) return user.logo;
+
+    // 2. Otherwise, generate a Letter Avatar using the correct name
+    const name = getUserName();
+
+    // length=1    -> Shows 1 letter (e.g., "V" or "A")
+    // bold=true   -> Makes the letter thicker
+    // background  -> Random color like Gmail
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=128&length=1&bold=true`;
+  };
+
+  const displayName = getUserName();
+  const avatarSrc = getAvatarSrc();
+
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -45,7 +81,6 @@ const Header = () => {
               to={isAuthenticated ? getDashboardRoute() : ROUTES.HOME}
               className="flex items-center gap-2"
             >
-              {/* You can place an <img> tag here for a real logo if you have one */}
               <span className="text-2xl font-bold text-primary-600">
                 CampusHubX
               </span>
@@ -80,7 +115,7 @@ const Header = () => {
                 </>
               )}
 
-              {/* Recruiter Specific Links (Added based on your dashboard logic) */}
+              {/* Recruiter Specific Links */}
               {isRecruiter && (
                 <>
                   <Link
@@ -122,9 +157,10 @@ const Header = () => {
                   to={getProfileRoute()}
                   className="flex items-center space-x-2 text-gray-700 hover:text-primary-600 transition-colors group"
                 >
+                  {/* ✅ UPDATED: Uses the robust getters */}
                   <Avatar
-                    name={`${user?.firstName || user?.companyName || ""} ${user?.lastName || ""}`}
-                    src={user?.profilePicture || user?.logo}
+                    name={displayName}
+                    src={avatarSrc}
                     size="sm"
                     className="group-hover:ring-2 group-hover:ring-primary-500 transition-all"
                   />
@@ -229,7 +265,13 @@ const Header = () => {
                     className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <HiUserCircle className="w-5 h-5 mr-3" />
+                    <div className="mr-3">
+                      <img
+                        src={avatarSrc}
+                        alt="Avatar"
+                        className="w-6 h-6 rounded-full"
+                      />
+                    </div>
                     My Profile
                   </Link>
                   <button

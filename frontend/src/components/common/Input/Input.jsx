@@ -9,7 +9,7 @@ const Input = ({
   placeholder,
   className = "",
   valueAsNumber,
-  icon: Icon, // <--- 1. Destructure 'icon' and rename to 'Icon' (capital I)
+  icon: Icon,
   ...props
 }) => {
   return (
@@ -40,8 +40,9 @@ const Input = ({
             ${className}
           `}
           placeholder={placeholder}
-          {...register(name, { valueAsNumber })}
-          {...props} // <--- 2. Now 'props' does NOT contain 'icon', so the warning is gone
+          // {/* FIX: Only call register if it exists */}
+          {...(register ? register(name, { valueAsNumber }) : {})}
+          {...props}
         />
       </div>
       {error && <p className="mt-1 text-sm text-red-500">{error}</p>}

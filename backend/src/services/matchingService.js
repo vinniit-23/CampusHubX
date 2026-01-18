@@ -1,9 +1,9 @@
-import Match from '../models/Match.js';
-import Student from '../models/Student.js';
-import Opportunity from '../models/Opportunity.js';
-import Project from '../models/Project.js';
-import Achievement from '../models/Achievement.js';
-import { MATCHING_WEIGHTS } from '../utils/constants.js';
+import Match from "../models/Match.js";
+import Student from "../models/Student.js";
+import Opportunity from "../models/Opportunity.js";
+import Project from "../models/Project.js";
+import Achievement from "../models/Achievement.js";
+import { MATCHING_WEIGHTS } from "../utils/constants.js";
 
 /**
  * Calculate match score between student and opportunity
@@ -12,23 +12,38 @@ export const calculateMatchScore = async (student, opportunity) => {
   let totalScore = 0;
 
   // 1. Skill Match (40%)
-  const skillScore = calculateSkillMatch(student.skills, opportunity.requiredSkills);
+  const skillScore = calculateSkillMatch(
+    student.skills,
+    opportunity.requiredSkills,
+  );
   totalScore += skillScore * MATCHING_WEIGHTS.SKILL_MATCH;
 
   // 2. Project Relevance (25%)
-  const projectScore = await calculateProjectRelevance(student._id, opportunity);
+  const projectScore = await calculateProjectRelevance(
+    student._id,
+    opportunity,
+  );
   totalScore += projectScore * MATCHING_WEIGHTS.PROJECT_RELEVANCE;
 
   // 3. Achievement Match (20%)
-  const achievementScore = await calculateAchievementMatch(student._id, opportunity.requiredSkills);
+  const achievementScore = await calculateAchievementMatch(
+    student._id,
+    opportunity.requiredSkills,
+  );
   totalScore += achievementScore * MATCHING_WEIGHTS.ACHIEVEMENT_MATCH;
 
   // 4. Experience Level (10%)
-  const experienceScore = calculateExperienceMatch(student.yearOfStudy, opportunity.requiredExperience);
+  const experienceScore = calculateExperienceMatch(
+    student.yearOfStudy,
+    opportunity.requiredExperience,
+  );
   totalScore += experienceScore * MATCHING_WEIGHTS.EXPERIENCE_LEVEL;
 
   // 5. Location Preference (5%)
-  const locationScore = calculateLocationMatch(student.preferences?.locations, opportunity.location);
+  const locationScore = calculateLocationMatch(
+    student.preferences?.locations,
+    opportunity.location,
+  );
   totalScore += locationScore * MATCHING_WEIGHTS.LOCATION_PREFERENCE;
 
   return Math.round(totalScore);
@@ -41,11 +56,11 @@ const calculateSkillMatch = (studentSkills, requiredSkills) => {
   if (!requiredSkills || requiredSkills.length === 0) return 100;
   if (!studentSkills || studentSkills.length === 0) return 0;
 
-  const studentSkillIds = studentSkills.map(s => s.toString());
-  const requiredSkillIds = requiredSkills.map(s => s.toString());
-  
-  const matchedCount = requiredSkillIds.filter(skillId => 
-    studentSkillIds.includes(skillId)
+  const studentSkillIds = studentSkills.map((s) => s.toString());
+  const requiredSkillIds = requiredSkills.map((s) => s.toString());
+
+  const matchedCount = requiredSkillIds.filter((skillId) =>
+    studentSkillIds.includes(skillId),
   ).length;
 
   return (matchedCount / requiredSkillIds.length) * 100;
@@ -56,29 +71,35 @@ const calculateSkillMatch = (studentSkills, requiredSkills) => {
  */
 const calculateProjectRelevance = async (studentId, opportunity) => {
   try {
-    const projects = await Project.find({ 
+    const projects = await Project.find({
       studentId,
-      isActive: true 
-    }).populate('skills');
+      isActive: true,
+    }).populate("skills");
 
     if (projects.length === 0) return 0;
 
+    // ✅ FIX: Safely access requiredSkills with fallback
+    const requiredSkillIds = (opportunity.requiredSkills || []).map((s) =>
+      s.toString(),
+    );
+
+    if (requiredSkillIds.length === 0) return 100;
+
     let totalRelevance = 0;
-    const requiredSkillIds = opportunity.requiredSkills.map(s => s.toString());
 
     for (const project of projects) {
-      const projectSkillIds = project.skills.map(s => s.toString());
-      const matchingSkills = requiredSkillIds.filter(skillId => 
-        projectSkillIds.includes(skillId)
+      const projectSkillIds = project.skills.map((s) => s.toString());
+      const matchingSkills = requiredSkillIds.filter((skillId) =>
+        projectSkillIds.includes(skillId),
       ).length;
-      
+
       const projectRelevance = (matchingSkills / requiredSkillIds.length) * 100;
       totalRelevance += projectRelevance;
     }
 
     return Math.min(totalRelevance / projects.length, 100);
   } catch (error) {
-    console.error('Error calculating project relevance:', error);
+    console.error("Error calculating project relevance:", error);
     return 0;
   }
 };
@@ -90,20 +111,24 @@ const calculateAchievementMatch = async (studentId, requiredSkills) => {
   try {
     const achievements = await Achievement.find({
       studentId,
-      verificationStatus: 'verified'
-    }).populate('skills');
+      verificationStatus: "verified",
+    }).populate("skills");
 
     if (achievements.length === 0) return 0;
 
-    const requiredSkillIds = requiredSkills.map(s => s.toString());
+    // ✅ FIX: Safely access requiredSkills with fallback
+    const requiredSkillIds = (requiredSkills || []).map((s) => s.toString());
+
+    if (requiredSkillIds.length === 0) return 100;
+
     let totalMatch = 0;
 
     for (const achievement of achievements) {
-      const achievementSkillIds = achievement.skills.map(s => s.toString());
-      const matchingSkills = requiredSkillIds.filter(skillId => 
-        achievementSkillIds.includes(skillId)
+      const achievementSkillIds = achievement.skills.map((s) => s.toString());
+      const matchingSkills = requiredSkillIds.filter((skillId) =>
+        achievementSkillIds.includes(skillId),
       ).length;
-      
+
       if (matchingSkills > 0) {
         totalMatch += (matchingSkills / requiredSkillIds.length) * 100;
       }
@@ -111,7 +136,7 @@ const calculateAchievementMatch = async (studentId, requiredSkills) => {
 
     return Math.min((totalMatch / achievements.length) * 100, 100);
   } catch (error) {
-    console.error('Error calculating achievement match:', error);
+    console.error("Error calculating achievement match:", error);
     return 0;
   }
 };
@@ -123,12 +148,9 @@ const calculateExperienceMatch = (yearOfStudy, requiredExperience) => {
   if (!requiredExperience || requiredExperience === 0) return 100;
   if (!yearOfStudy) return 0;
 
-  // Convert year of study to approximate experience (years)
-  const studentExperience = (yearOfStudy - 1) * 0.75; // Approximate
+  const studentExperience = (yearOfStudy - 1) * 0.75;
 
   if (studentExperience >= requiredExperience) return 100;
-  
-  // Percentage match based on how close student experience is to required
   return Math.max((studentExperience / requiredExperience) * 100, 0);
 };
 
@@ -136,18 +158,17 @@ const calculateExperienceMatch = (yearOfStudy, requiredExperience) => {
  * Calculate location preference match
  */
 const calculateLocationMatch = (studentLocations, opportunityLocation) => {
-  if (!studentLocations || studentLocations.length === 0) return 50; // Neutral if no preference
-  
-  if (opportunityLocation.type === 'remote') {
-    // Students generally prefer remote, so higher score
+  if (!studentLocations || studentLocations.length === 0) return 50;
+
+  if (opportunityLocation.type === "remote") {
     return 100;
   }
 
-  // Check if student has location preference matching opportunity
-  const opportunityLocationStr = `${opportunityLocation.city || ''} ${opportunityLocation.state || ''} ${opportunityLocation.country || ''}`.toLowerCase();
-  
-  const hasMatch = studentLocations.some(loc => 
-    opportunityLocationStr.includes(loc.toLowerCase())
+  const opportunityLocationStr =
+    `${opportunityLocation.city || ""} ${opportunityLocation.state || ""} ${opportunityLocation.country || ""}`.toLowerCase();
+
+  const hasMatch = studentLocations.some((loc) =>
+    opportunityLocationStr.includes(loc.toLowerCase()),
   );
 
   return hasMatch ? 100 : 0;
@@ -157,15 +178,15 @@ const calculateLocationMatch = (studentLocations, opportunityLocation) => {
  * Find matched skills and missing skills
  */
 export const findMatchedAndMissingSkills = (studentSkills, requiredSkills) => {
-  const studentSkillIds = studentSkills.map(s => s.toString());
-  const requiredSkillIds = requiredSkills.map(s => s.toString());
+  const studentSkillIds = (studentSkills || []).map((s) => s.toString());
+  const requiredSkillIds = (requiredSkills || []).map((s) => s.toString());
 
-  const matchedSkills = requiredSkills.filter(skill => 
-    studentSkillIds.includes(skill.toString())
+  const matchedSkills = (requiredSkills || []).filter((skill) =>
+    studentSkillIds.includes(skill.toString()),
   );
 
-  const missingSkills = requiredSkills.filter(skill => 
-    !studentSkillIds.includes(skill.toString())
+  const missingSkills = (requiredSkills || []).filter(
+    (skill) => !studentSkillIds.includes(skill.toString()),
   );
 
   return { matchedSkills, missingSkills };
@@ -176,55 +197,48 @@ export const findMatchedAndMissingSkills = (studentSkills, requiredSkills) => {
  */
 export const matchStudentWithOpportunities = async (studentId) => {
   try {
-    const student = await Student.findById(studentId).populate('skills');
-    
-    if (!student) {
-      throw new Error('Student not found');
-    }
+    const student = await Student.findById(studentId).populate("skills");
+    if (!student) throw new Error("Student not found");
 
-    const activeOpportunities = await Opportunity.find({ isActive: true })
-      .populate('requiredSkills');
-
+    const activeOpportunities = await Opportunity.find({
+      isActive: true,
+    }).populate("requiredSkills");
     const matches = [];
 
     for (const opportunity of activeOpportunities) {
       const score = await calculateMatchScore(student, opportunity);
-      
+
       if (score >= opportunity.matchScoreThreshold) {
         const { matchedSkills, missingSkills } = findMatchedAndMissingSkills(
           student.skills,
-          opportunity.requiredSkills
+          opportunity.requiredSkills,
         );
 
-        // Save or update match record
         await Match.findOneAndUpdate(
           { studentId, opportunityId: opportunity._id },
           {
             studentId,
             opportunityId: opportunity._id,
             score,
-            matchedSkills: matchedSkills.map(s => s._id),
-            missingSkills: missingSkills.map(s => s._id),
-            calculatedAt: new Date()
+            matchedSkills: matchedSkills.map((s) => s._id),
+            missingSkills: missingSkills.map((s) => s._id),
+            calculatedAt: new Date(),
           },
-          { upsert: true, new: true }
+          { upsert: true, new: true },
         );
 
         matches.push({
           opportunity,
           matchScore: score,
           matchedSkills,
-          missingSkills
+          missingSkills,
         });
       }
     }
-
-    // Sort by match score (highest first)
     matches.sort((a, b) => b.matchScore - a.matchScore);
-
     return matches;
   } catch (error) {
-    console.error('Error matching student with opportunities:', error);
+    console.error("Error matching student with opportunities:", error);
     throw error;
   }
 };
@@ -234,40 +248,34 @@ export const matchStudentWithOpportunities = async (studentId) => {
  */
 export const matchOpportunityWithStudents = async (opportunityId) => {
   try {
-    const opportunity = await Opportunity.findById(opportunityId)
-      .populate('requiredSkills');
-    
-    if (!opportunity) {
-      throw new Error('Opportunity not found');
-    }
+    const opportunity =
+      await Opportunity.findById(opportunityId).populate("requiredSkills");
+    if (!opportunity) throw new Error("Opportunity not found");
 
-    const students = await Student.find().populate('skills');
+    const students = await Student.find().populate("skills");
     const matches = [];
 
     for (const student of students) {
       const score = await calculateMatchScore(student, opportunity);
-      
+
       if (score >= opportunity.matchScoreThreshold) {
         const { matchedSkills, missingSkills } = findMatchedAndMissingSkills(
           student.skills,
-          opportunity.requiredSkills
+          opportunity.requiredSkills,
         );
 
         matches.push({
           student,
           matchScore: score,
           matchedSkills,
-          missingSkills
+          missingSkills,
         });
       }
     }
-
-    // Sort by match score (highest first)
     matches.sort((a, b) => b.matchScore - a.matchScore);
-
     return matches;
   } catch (error) {
-    console.error('Error matching opportunity with students:', error);
+    console.error("Error matching opportunity with students:", error);
     throw error;
   }
 };
@@ -277,16 +285,14 @@ export const matchOpportunityWithStudents = async (opportunityId) => {
  */
 export const recalculateAllMatches = async () => {
   try {
-    const students = await Student.find().populate('skills');
-    
+    const students = await Student.find().populate("skills");
     for (const student of students) {
       await matchStudentWithOpportunities(student._id);
     }
-
     console.log(`Recalculated matches for ${students.length} students`);
     return true;
   } catch (error) {
-    console.error('Error recalculating all matches:', error);
+    console.error("Error recalculating all matches:", error);
     throw error;
   }
 };
@@ -296,7 +302,7 @@ const matchingService = {
   findMatchedAndMissingSkills,
   matchStudentWithOpportunities,
   matchOpportunityWithStudents,
-  recalculateAllMatches
+  recalculateAllMatches,
 };
 
 export default matchingService;
