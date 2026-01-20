@@ -21,12 +21,7 @@ export const studentsApi = {
     return response.data.data?.skills || [];
   },
 
-  addSkill: async (skillId) => {
-    const response = await apiClient.post("/api/students/profile", {
-      skills: [skillId],
-    });
-    return response.data;
-  },
+  // 🔴 REMOVED DUPLICATE OLD ADD SKILL FUNCTION
 
   getProjects: async () => {
     const response = await apiClient.get("/api/projects");
@@ -41,7 +36,7 @@ export const studentsApi = {
   getApplications: async (filters = {}) => {
     const params = new URLSearchParams(filters);
     const response = await apiClient.get(
-      `/api/students/applications?${params}`
+      `/api/students/applications?${params}`,
     );
     return response.data;
   },
@@ -49,7 +44,7 @@ export const studentsApi = {
   getMatches: async (filters = {}) => {
     const params = new URLSearchParams(filters);
     const response = await apiClient.get(
-      `/api/matching/opportunities?${params}`
+      `/api/matching/opportunities?${params}`,
     );
     return response.data;
   },
@@ -59,9 +54,8 @@ export const studentsApi = {
     return response.data;
   },
 
+  // ✅ KEEP THIS ONE (Matches the backend route we fixed)
   addSkill: async (skillId) => {
-    // 🔴 OLD: const response = await apiClient.post('/api/students/profile', ...
-    // 🟢 NEW: Point to the /skills endpoint we just created
     const response = await apiClient.post("/api/students/skills", {
       skills: [skillId],
     });

@@ -17,7 +17,7 @@ router.get(
   collegeController.getDashboardStats,
 );
 
-router.put(
+router.patch(
   "/profile",
   authenticate,
   authorize(USER_ROLES.COLLEGE),

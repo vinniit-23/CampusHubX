@@ -16,14 +16,12 @@ const Input = forwardRef(
     },
     ref,
   ) => {
-    // Determine if we are using the legacy pattern (passing register prop)
-    // or modern pattern (spreading register props)
+    // Legacy support for passing register as a prop
     const legacyProps = register ? register(name, { valueAsNumber }) : {};
 
-    // Combine props: prefer legacy register props if they exist, otherwise use spread props
+    // Combine props. Note: 'name' is NOT in props because it was destructured above
     const finalProps = register ? { ...props, ...legacyProps } : props;
 
-    // Determine the correct ref to use
     const finalRef = register ? legacyProps.ref : ref;
 
     return (
@@ -46,6 +44,7 @@ const Input = forwardRef(
           <input
             type={type}
             id={name}
+            name={name} // 👈 ✅ FIX: Explicitly add the name attribute back!
             className={`
             w-full py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500
             ${Icon ? "pl-10 pr-3" : "px-3"} 

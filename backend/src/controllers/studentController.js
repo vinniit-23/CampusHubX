@@ -4,13 +4,11 @@ import {
   paginate,
   formatPaginationResponse,
 } from "../utils/helpers.js";
-import mongoose from "mongoose"; // 👈 ADDED THIS
+import mongoose from "mongoose";
 import Student from "../models/Student.js";
 import Project from "../models/Project.js";
 import Achievement from "../models/Achievement.js";
-// ❌ REMOVED: import Application from "../models/Application.js";
 import { USER_ROLES } from "../utils/constants.js";
-// ❌ REMOVED: import Match from "../models/Match.js";
 
 /**
  * Get own profile
@@ -35,9 +33,8 @@ export const getOwnProfile = asyncHandler(async (req, res) => {
     .json(formatResponse(true, student, "Profile retrieved successfully"));
 });
 
-/**
- * Update own profile
- */
+// ... existing imports
+
 export const updateOwnProfile = asyncHandler(async (req, res) => {
   const student = await Student.findOne({ userId: req.user._id });
 
@@ -49,7 +46,32 @@ export const updateOwnProfile = asyncHandler(async (req, res) => {
     );
   }
 
-  Object.assign(student, req.body);
+  console.log("Updating Student Profile with:", req.body);
+
+  // Update basic fields
+  if (req.body.firstName) student.firstName = req.body.firstName;
+  if (req.body.lastName) student.lastName = req.body.lastName;
+  if (req.body.bio !== undefined) student.bio = req.body.bio;
+  if (req.body.resumeUrl !== undefined) student.resumeUrl = req.body.resumeUrl;
+
+  // ✅ FIX: Explicitly set social links to avoid Mongoose spread issues
+  if (req.body.socialLinks) {
+    if (!student.socialLinks) student.socialLinks = {};
+
+    if (req.body.socialLinks.github !== undefined)
+      student.socialLinks.github = req.body.socialLinks.github;
+
+    if (req.body.socialLinks.linkedin !== undefined)
+      student.socialLinks.linkedin = req.body.socialLinks.linkedin;
+
+    if (req.body.socialLinks.portfolio !== undefined)
+      student.socialLinks.portfolio = req.body.socialLinks.portfolio;
+  }
+
+  // Handle other fields
+  if (req.body.phone) student.phone = req.body.phone;
+  if (req.body.profilePicture) student.profilePicture = req.body.profilePicture;
+
   await student.save();
 
   const updated = await Student.findById(student._id)
@@ -60,6 +82,8 @@ export const updateOwnProfile = asyncHandler(async (req, res) => {
     .status(200)
     .json(formatResponse(true, updated, "Profile updated successfully"));
 });
+
+// ... rest of the file
 
 /**
  * Get student public profile
@@ -193,9 +217,7 @@ export const getStudentAchievements = asyncHandler(async (req, res) => {
  * Get own applications
  */
 export const getOwnApplications = asyncHandler(async (req, res) => {
-  // ✅ FIX: Get Model at runtime
   const Application = mongoose.model("Application");
-
   const { page, limit } = paginate(req.query.page, req.query.limit);
 
   const student = await Student.findOne({ userId: req.user._id });
@@ -247,7 +269,6 @@ export const getMatchedOpportunities = asyncHandler(async (req, res) => {
     );
   }
 
-  // This will be handled by matchingController
   res
     .status(200)
     .json(
@@ -259,15 +280,11 @@ export const getMatchedOpportunities = asyncHandler(async (req, res) => {
  * Get dashboard data
  */
 export const getDashboard = asyncHandler(async (req, res) => {
-  // ✅ FIX: Get Models at runtime to avoid circular dependency
   const Application = mongoose.model("Application");
-  // Check if Match is registered, otherwise handle gracefully or use dynamic import if needed
-  // Assuming Match model is registered via matchingService or matchingRoutes
   let Match;
   try {
     Match = mongoose.model("Match");
   } catch (e) {
-    // Fallback if Match model isn't loaded yet (rare, but safe)
     Match = { countDocuments: () => 0 };
   }
 
@@ -280,7 +297,6 @@ export const getDashboard = asyncHandler(async (req, res) => {
     );
   }
 
-  // 1. Calculate Profile Completion
   let filledFields = 0;
   const totalFields = 6;
   if (student.bio) filledFields++;
@@ -292,7 +308,6 @@ export const getDashboard = asyncHandler(async (req, res) => {
 
   const profileCompletion = Math.round((filledFields / totalFields) * 100);
 
-  // 2. Run all counts in parallel
   const [totalApplications, pendingApplications, matchedOpportunitiesCount] =
     await Promise.all([
       Application.countDocuments({ studentId: student._id }),
@@ -300,7 +315,6 @@ export const getDashboard = asyncHandler(async (req, res) => {
       Match.countDocuments({ studentId: student._id }),
     ]);
 
-  // 3. Get recent applications
   const recentApplications = await Application.find({ studentId: student._id })
     .populate("opportunityId", "title type")
     .sort({ appliedAt: -1 })

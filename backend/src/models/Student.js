@@ -24,11 +24,10 @@ const studentSchema = new mongoose.Schema(
       ref: "College",
       index: true,
     },
-    // 👉 ADD THIS RIGHT HERE
-isVerifiedByCollege: {
-  type: Boolean,
-  default: false,
-},
+    isVerifiedByCollege: {
+      type: Boolean,
+      default: false,
+    },
     enrollmentNumber: {
       type: String,
       index: true,
@@ -56,6 +55,19 @@ isVerifiedByCollege: {
       type: String,
       maxlength: 500,
     },
+
+    // 👇 THESE WERE MISSING IN YOUR FILE 👇
+    resumeUrl: {
+      type: String,
+      trim: true,
+    },
+    socialLinks: {
+      github: { type: String, trim: true },
+      linkedin: { type: String, trim: true },
+      portfolio: { type: String, trim: true },
+    },
+    // 👆 ADDED FIELDS 👆
+
     skills: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -101,7 +113,7 @@ isVerifiedByCollege: {
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Index for search

@@ -14,12 +14,14 @@ import Select from "../../components/common/Select/Select";
 import toast from "react-hot-toast";
 import { formatDate } from "../../utils/helpers";
 import { ACHIEVEMENT_TYPES, VERIFICATION_STATUS } from "../../utils/constants";
+import { useAuth } from "../../hooks/useAuth"; // Import useAuth
 
 const Achievements = () => {
   const [achievements, setAchievements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAchievement, setEditingAchievement] = useState(null);
+  const { user } = useAuth();
 
   const {
     register,
@@ -36,12 +38,15 @@ const Achievements = () => {
 
   // Locate this function
   const fetchAchievements = async () => {
+    if (!user?.profile?._id) return; // Guard clause
+
     setLoading(true);
     try {
-      const response = await achievementsApi.getAll();
+      // 🔴 OLD: const response = await achievementsApi.getAll();
+      // 🟢 NEW: Fetch only THIS student's achievements
+      const response = await achievementsApi.getByStudent(user.profile._id);
+
       if (response.success) {
-        // 🔴 OLD: setAchievements(response.data || []);
-        // 🟢 NEW: Extract the 'data' array
         setAchievements(response.data?.data || []);
       }
     } catch (error) {
