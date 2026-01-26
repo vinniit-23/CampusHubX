@@ -42,7 +42,7 @@ const StudentRegisterForm = () => {
             collegeList.map((college) => ({
               value: college._id,
               label: college.name, // The model uses 'name', not 'collegeName'
-            }))
+            })),
           );
         }
       } catch (error) {
@@ -61,7 +61,7 @@ const StudentRegisterForm = () => {
       const response = await authApi.register(data, "student");
       if (response.success) {
         toast.success(
-          "Registration successful! Please check your email to verify your account."
+          "Registration successful! Please check your email to verify your account.",
         );
         navigate(ROUTES.LOGIN);
       } else {
@@ -69,7 +69,7 @@ const StudentRegisterForm = () => {
       }
     } catch (error) {
       toast.error(
-        error.response?.data?.error?.message || "Registration failed"
+        error.response?.data?.error?.message || "Registration failed",
       );
     } finally {
       setLoading(false);
@@ -118,19 +118,24 @@ const StudentRegisterForm = () => {
         required
       />
 
-      <Select
-        label="College"
-        name="collegeId"
-        value={watch("collegeId")}
-        onChange={(e) => setValue("collegeId", e.target.value)}
-        options={colleges}
-        error={errors.collegeId?.message}
-        placeholder={
-          loadingColleges ? "Loading colleges..." : "Select your college"
-        }
-        required
-        disabled={loadingColleges}
-      />
+      <div>
+        <Select
+          label="College"
+          name="collegeId"
+          value={watch("collegeId")}
+          onChange={(e) => setValue("collegeId", e.target.value)}
+          options={colleges}
+          error={errors.collegeId?.message}
+          placeholder={
+            loadingColleges ? "Loading colleges..." : "Select your college"
+          }
+          required
+          disabled={loadingColleges}
+        />
+        <p className="text-sm text-gray-500 mt-1">
+          College not listed? Please create a college account first.
+        </p>
+      </div>
 
       <Input
         label="Enrollment Number"
